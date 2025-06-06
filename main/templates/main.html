@@ -1,0 +1,102 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Карьера и Склад</title>
+    <link rel="stylesheet" href="{% static 'css/main.css' %}">
+</head>
+<body>
+<h1>Разгрузка самосвалов на склад</h1>
+<p class="note">Последний столбец «Координаты разгрузки»: введите «X Y». Пример: <em>30 20</em></p>
+
+<form method="post" action="{% url 'main:index' %}">
+    {% csrf_token %}
+    <table>
+        <thead>
+        <tr>
+            <th>Бортовой номер</th>
+            <th>Модель</th>
+            <th>Макс. грузопод.</th>
+            <th>Текущий вес</th>
+            <th>SiO₂ %</th>
+            <th>Fe %</th>
+            <th>Координаты разгрузки (X Y)</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for truck in trucks %}
+            <tr>
+                <td>{{ truck.board_number }}</td>
+                <td>{{ truck.model.name }}</td>
+                <td>{{ truck.model.max_capacity }}</td>
+                <td>{{ truck.current_load }}</td>
+                <td>{{ truck.percent_sio2 }}</td>
+                <td>{{ truck.percent_fe }}</td>
+                <td>
+                    <input type="text"
+                           name="coord_{{ truck.id }}"
+                           placeholder="X Y">
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    <button type="submit">Рассчитать</button>
+</form>
+
+{% if result %}
+    <!-- Если результат вычислений есть, отображаем Таблицу 2 -->
+    <div class="result-table">
+        <h2>Склад после разгрузки</h2>
+        <table>
+            <thead>
+            <tr>
+                <th>Название склада</th>
+                <th>Объём до разгрузки, т</th>
+                <th>Объём после разгрузки, т</th>
+                <th>Качественные характеристики после разгрузки</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td>{{ warehouse.name }}</td>
+                <td>{{ result.initial_volume }}</td>
+                <td>{{ result.final_volume|floatformat:2 }}</td>
+                <td>
+                    {{ result.final_sio2|floatformat:2 }}% SiO₂,
+                    {{ result.final_fe|floatformat:2 }}% Fe
+                </td>
+            </tr>
+            </tbody>
+        </table>
+
+        <h3>Подробности разгрузок</h3>
+        <table>
+            <thead>
+            <tr>
+                <th>Самосвал</th>
+                <th>Координаты</th>
+                <th>Попал в полигон?</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for ev in result.events %}
+                <tr>
+                    <td>{{ ev.truck.board_number }}</td>
+                    <td>{{ ev.coord_input }}</td>
+                    <td>
+                        {% if ev.is_inside %}
+                            <span style="color: green; font-weight: bold;">Да</span>
+                        {% else %}
+                            <span style="color: red;">Нет</span>
+                        {% endif %}
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endif %}
+</body>
+</html>
